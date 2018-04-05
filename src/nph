@@ -1,0 +1,4 @@
+#! /bin/bash
+
+mkdir --parents "${1}.d/";
+tar xpfv "${1}" --xattrs-include='*.*' --numeric-owner --directory="${1}.d/";

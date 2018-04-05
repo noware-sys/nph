@@ -1,0 +1,3 @@
+Install (upgrade or downgrade) package (to set version or time).
+Partial upgrades.
+Multiple installed versions of same package.
