@@ -1,4 +1,119 @@
-#! /bin/bash
+#! /bin/bash -e
 
-mkdir --parents "${1}.d/";
-tar xpfv "${1}" --xattrs-include='*.*' --numeric-owner --directory="${1}.d/";
+source '/etc/nph.d/base.sh';
+source '/etc/nph.d/cfg.sh';
+source '/etc/nph.d/src.sh';
+source '/etc/nph.d/src.d/'*'.sh';
+
+script_basename=$(basename "${0}");
+usage="${script_basename}"' : usage : '"${script_basename}"' -hire:f:b:c:o:p:';
+
+if [ -z "${rootfs}"]
+then
+	rootfs='/var/cache/nph/rootfs';
+fi
+if [ -z "${cachedir}"]
+then
+	cachedir="${rootfs}"'/var/cache/nph/pkg';
+fi
+if [ -z "${db}"]
+then
+	db="${rootfs}"'/etc/nph.d/pkg.sqlite-3.db';
+fi
+expl='true';
+proceed='false';
+force='false';
+while getopts 'hire:f:b:c:o:p:' arg
+do
+	#echo "::${arg}::${OPTARG}";
+	case "${arg}" in
+		'i')
+			operation='install';
+			;;
+		# explicitly re/install all listed packages,
+		# not just the needed ones
+		'e')
+			expl="${OPTARG}";
+			;;
+		'f')
+			force="${OPTARG}";
+			;;
+		'r')
+			operation='remove';
+			;;
+		'b')
+			rootfs="${OPTARG}";
+			;;
+		'c')
+			cachedir="${OPTARG}";
+			;;
+		# infOrmational database
+		# (SQLite 3)
+		# note the uppercase O
+		'o')
+			db="${OPTARG}";
+			;;
+		# whether to proceed,
+		# not confirming the operation
+		'p')
+			proceed="${OPTARG}";
+			;;
+		'h')
+			echo "${usage}";
+			exit 0;
+			;;
+		*)
+			echo "${usage}";
+			exit 1;
+	esac
+done
+shift $(($OPTIND - 1));
+
+if [ -z "${operation}" ]
+then
+	echo "${usage}";
+	exit 1;
+elif [ ! -d "${rootfs}" ]
+then
+	echo "${script_basename}"" : '""${rootfs}""' is not a directory";
+	
+	if [ "${force}" == 'false' ]
+	then
+		exit 1;
+	fi
+elif [ ! -w "${rootfs}" ]
+then
+	echo "${script_basename}"" : '""${rootfs}""' is not writable";
+	
+	if [ "${force}" == 'false' ]
+	then
+		exit 1;
+	fi
+fi
+
+echo "rootfs = ${rootfs}";
+echo "db = ${db}";
+echo "cachedir = ${cachedir}";
+echo "operation = ${operation}";
+echo "expl = ${expl}";
+echo "force = ${force}";
+echo "proceed = ${proceed}";
+echo "@ = ${@}";
+
+#for var in "${@}"
+#do
+#	echo "${var}";
+#done
+
+#cd "${cachedir}";
+#cd - 1>&/dev/null;
+# normalize $@
+case "${operation}" in
+	'install')
+		pkgsget $(pkggetsrc '' '.pkg.tar' "${@}");
+		pkginstall $(array_basename "${cachedir}/" '.pkg.tar' "${@}");
+		;;
+	'remove')
+		#pkgremove $(pkgsrmnorm "${@}");
+		pkgremove "${@}";
+esac
