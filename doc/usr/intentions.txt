@@ -1,3 +1,4 @@
-Install (upgrade or downgrade) package (to set version or time).
+Install (upgrade, downgrade, or reinstall) package (to version).
 Partial upgrades.
-Multiple installed versions of same package.
+Multiple installed versions of same package name.
+Get package from IPFS.

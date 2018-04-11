@@ -1,0 +1,5 @@
+GoboLinux (filesystem hierarchy);
+Environment Modules (http://modules.sourceforge.net/);
+Arch Linux' pacman (simplicity);
+Debian's APT (format of the description of packages);
+IPFS;

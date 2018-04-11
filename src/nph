@@ -4,26 +4,39 @@ source '/etc/nph.d/base.sh';
 source '/etc/nph.d/cfg.sh';
 source '/etc/nph.d/src.sh';
 source '/etc/nph.d/src.d/'*'.sh';
+source '/etc/nph.d/src_ord.cfg.sh';
+source '/etc/nph.d/src_ord.sh';
 
 script_basename=$(basename "${0}");
-usage="${script_basename}"' : usage : '"${script_basename}"' -hire:f:b:c:o:p:';
+usage="${script_basename}"' : usage : '"${script_basename}"' -SQ:Lhire:f:b:c:d:o:p:k:';
+#pkgsrcs=();
+#declare -A pkgsrc;
 
-if [ -z "${rootfs}"]
+if [ -z "${rootfs}" ]
 then
-	rootfs='/var/cache/nph/rootfs';
+	rootfs='/';
 fi
-if [ -z "${cachedir}"]
+if [ -z "${cachedir}" ]
 then
 	cachedir="${rootfs}"'/var/cache/nph/pkg';
 fi
-if [ -z "${db}"]
+if [ -z "${dbdir}" ]
 then
-	db="${rootfs}"'/etc/nph.d/pkg.sqlite-3.db';
+	dbdir="${rootfs}"'/var/cache/nph/db';
+fi
+if [ -z "${dbotherdir}" ]
+then
+	dbotherdir="${rootfs}"'/var/cache/nph/db.other';
+fi
+if [ -z "${pkgdbdir}" ]
+then
+	pkgdbdir="${rootfs}"'/pkg';
 fi
 expl='true';
 proceed='false';
 force='false';
-while getopts 'hire:f:b:c:o:p:' arg
+dep='false';
+while getopts 'SQ:Lhire:f:b:c:d:o:p:k:' arg
 do
 	#echo "::${arg}::${OPTARG}";
 	case "${arg}" in
@@ -47,16 +60,35 @@ do
 		'c')
 			cachedir="${OPTARG}";
 			;;
+		# consider dependencies
+		'd')
+			dep="${OPTARG}";
+			;;
 		# infOrmational database
 		# (SQLite 3)
-		# note the uppercase O
+		# note the uppercase O for the option -o
 		'o')
-			db="${OPTARG}";
+			dbdir="${OPTARG}";
+			;;
+		# directory where the packages should be installed
+		'k')
+			pkgdbdir="${OPTARG}";
 			;;
 		# whether to proceed,
 		# not confirming the operation
 		'p')
 			proceed="${OPTARG}";
+			;;
+		# refresh package database
+		'S')
+			operation='sync';
+			;;
+		'L')
+			operation='sync_uri';
+			;;
+		'Q')
+			operation='query';
+			query="${OPTARG}";
 			;;
 		'h')
 			echo "${usage}";
@@ -75,45 +107,130 @@ then
 	exit 1;
 elif [ ! -d "${rootfs}" ]
 then
-	echo "${script_basename}"" : '""${rootfs}""' is not a directory";
+	echo "${script_basename}""::'""${rootfs}""' is not a directory";
 	
-	if [ "${force}" == 'false' ]
+	if [ "${force}" != 'true' ]
 	then
 		exit 1;
 	fi
 elif [ ! -w "${rootfs}" ]
 then
-	echo "${script_basename}"" : '""${rootfs}""' is not writable";
+	echo "${script_basename}""::'""${rootfs}""' is not writable";
 	
-	if [ "${force}" == 'false' ]
+	if [ "${force}" != 'true' ]
 	then
 		exit 1;
 	fi
 fi
 
+#echo '';
+for srcndx in "${!src[@]}"
+do
+	echo "src[${srcndx}]=${src[${srcndx}]}";
+done
+
+echo '';
 echo "rootfs = ${rootfs}";
-echo "db = ${db}";
+echo "pkgdbdir = ${pkgdbdir}";
+echo "dbdir = ${dbdir}";
 echo "cachedir = ${cachedir}";
 echo "operation = ${operation}";
 echo "expl = ${expl}";
+echo "dep = ${dep}";
 echo "force = ${force}";
 echo "proceed = ${proceed}";
-echo "@ = ${@}";
+echo '@ = `'"${@}"'`';
 
 #for var in "${@}"
 #do
 #	echo "${var}";
 #done
 
+echo '';
 #cd "${cachedir}";
 #cd - 1>&/dev/null;
 # normalize $@
 case "${operation}" in
+	'query')
+		echo '::queuing';
+		;;
+	'sync_uri')
+		## get available packages
+		# get the dependencies for the uris of the packages
+		pkgsrcsyncdepuri "${@}";
+		#pkgsrcsyncdepuri "${@}";
+		;;
+	'sync')
+		## clear local db
+		#rm --preserve-root --verbose --recursive --force "${dbdir}/"*;
+		# get available packages
+		pkgsrcsyncdb;
+		# get the dependencies for the packages
+		pkgsrcsyncdep;
+		;;
 	'install')
-		pkgsget $(pkggetsrc '' '.pkg.tar' "${@}");
-		pkginstall $(array_basename "${cachedir}/" '.pkg.tar' "${@}");
+		#deps=($(pkgdepget "${@}"));
+		#pkgs+=("${@}");
+		#deps=$(pkgdepget "${@}");
+		# get the additional dependencies for the already-found dependencies
+		#deps_add=($(pkgdepget "${deps[@]}"));
+		#while [ "${deps[*]}" != "${deps_add[*]}" ]
+		#do
+		#	deps+=("${deps_new[@]}");
+		#	deps_add=($(pkgdepget "${deps[@]}"));
+		#done
+		#pkgsuris+=($(pkggetsrc '' '.pkg.tar' "${pkgs[@]}"));
+		#pkgget "${cachedir}" $(pkggetsrc '' '.pkg.tar' "${@}");
+		#pkgget "${cachedir}" $(pkgdepget $(pkgsrcget '' '.pkg.tar' "${@}")));
+		
+		echo '::install';
+		##echo $(pkgsrcget '' '.pkg.tar' "${@}");
+		#echo $(pkgsrcget "${@}");
+		#echo $(pkggetall "${@}");
+		#pkgsrcget '' '.pkg.tar' "${@}";
+		#pkgls=($(pkgsrcget '' '.pkg.tar' "${@}"));
+		#echo "${pkgls[@]}";
+		#exit 4;
+		#echo "::pkgsrc";
+		#for i in "${!pkgsrc[@]}"
+		#do
+		#	echo "pkgsrc[${i}]=${pkgsrc[${i}]}";
+		#done
+		#echo "::pkgsrc/";
+		#echo "::pkgls::${pkgls[@]}";
+		#pkgdepget "${pkgls[@]}";
+		#echo $(pkgdepget "${pkgls[@]}");
+		#pkgls_dep=($(pkgdepget "${pkgls[@]}"));
+		#pkggetall "${@}";
+		#echo $(pkggetall "${@}");
+	#	pkgget "${cachedir}" $(pkggetall "${@}");
+		#pkgget "${cachedir}" $(pkgsrcget '' '.pkg.tar' "${pkgs[@]}" "${deps[@]}");
+	#	pkginstall $(array_basename "${cachedir}/" '.pkg.tar' "${@}");
+		
+		if [ "${dep}" == 'true' ]
+		then
+			#pkggetall "${@}";
+			#echo $(pkggetall "${@}");
+			pkguri=($(pkggetall "${@}"));
+		else
+			pkguri=($(pkgsrcget '' '.pkg.tar' "${@}" | tr ' ' '\n' | sed --expression='s|^[^/]*/*||' -));
+		fi
+		
+		pkgname=($(echo "${pkguri[*]}" | tr ' ' '\n' | sed --expression='s|^.*/||' --expression='s/.pkg.tar$//' -));
+		echo "${pkguri[@]}";
+		echo "${pkgname[@]}";
+		
+		pkgget "${cachedir}" "${pkguri[@]}";
+		#pkginstall "${pkgls[@]}";
+		#pkginstall $(array_basename "${cachedir}/" '.pkg.tar' "${pkgname[@]}");
+		echo $(echo "${pkgname[*]}" | tr ' ' '\n' | sed --expression='s|^|'"${cachedir}/"'|' --expression='s|$|.pkg.tar|' -);
+		pkginstall $(echo "${pkgname[*]}" | tr ' ' '\n' | sed --expression='s|^|'"${cachedir}/"'|' --expression='s|$|.pkg.tar|' -);
 		;;
 	'remove')
-		#pkgremove $(pkgsrmnorm "${@}");
-		pkgremove "${@}";
+		echo '::remove';
+		
+		#pkgremove $(pkgrmval "${pkgdbdir}/" '' "${@}");
+		#echo $(echo "${*}" | tr ' ' '\n' | sed --expression='s|^|'"${pkgdbdir}/"'|' -);
+		pkgremove $(echo "${*}" | tr ' ' '\n' | sed --expression='s|^|'"${pkgdbdir}/"'|' -);
+		#pkgremove "${@}";
 esac

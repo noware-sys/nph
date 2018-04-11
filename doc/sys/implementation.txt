@@ -1,0 +1,16 @@
+now improved/possible:
+	syncing the databases;
+	syncing dependencies;
+	syncing dependencies of packages from URIs
+		(needed prior to installing the packages from URIs);
+	
+	installing packages and their dependencies from the databases;
+	installing packages from URIs and their dependencies from the databases;
+	
+	removing packages;
+
+not implemented:
+	searching for packages;
+	confirming operation before proceeding;
+	consistency verifications;
+	most other things;

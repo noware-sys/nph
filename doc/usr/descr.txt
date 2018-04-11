@@ -1,0 +1,47 @@
+A Linux Package Manager
+
+
+Features:
+Installing multiple versions (multiple of name-version-release-architecture)
+of a package on the same system.
+
+This is a set of Bash scripts to wrap around obtaining tar archives from 
+defined sources and unpacking them into a configured directory where
+packages are kept.
+`nphdft` would be used to manage versions in the system.
+`nphdft` would create/delete symlinks, in the actual rootfs, to all files in the
+package root directory.
+
+
+Usage:
+
+Installing packages:
+	nph -i [-d false|true] package ...
+Where package should be in the format "name-version-release-architecture"
+or a URI to a tar archive.
+-d means to consider dependencies.
+Default value for -d: false.
+
+Removing packages:
+	nph -r package ...
+Where package should be in the format "name-version-release-architecture".
+
+Synchronizing the databases and the dependencies
+(this should be performed before synchronizing the dependencies):
+	nph -S
+
+Syncrhonizing the dependencies from URIs:
+(this should be performed before installing the same packages):
+	nph -L URI ...
+Where URI is a URI to a tar archive.
+The recommended usage for this is to syncronize the dependencies to packages
+via these URIs before installing the packages providing the same URIs.
+This ensures that the dependencies for those packages specified through the
+URIs are present before attempting to install the packages.
+
+
+URIs are anything that curl accepts, as curl is what is used to optain a local
+copy of any needed file.
+From curl manual:
+DICT, FILE, FTP, FTPS, GOPHER, HTTP, HTTPS, IMAP, IMAPS, LDAP, LDAPS, POP3,
+POP3S, RTMP, RTSP, SCP, SFTP, SMB, SMBS, SMTP, SMTPS, TELNET, TFTP.
